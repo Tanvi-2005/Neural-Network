@@ -25,3 +25,4 @@ def forward(x):
 x = np.array([1, 0, 1])
 result = forward(x)
 print("Final Output:", result)
+print("spam Mail",result>0.5)
