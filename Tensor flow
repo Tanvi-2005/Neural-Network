@@ -1,42 +1,38 @@
 import tensorflow as tf
+import numpy as np
 
-# Activation functions
-def relu(x):
-    return tf.nn.relu(x)
+# Very small dataset
+texts = tf.constant([
+    "Win money now",
+    "Congratulations! You won",
+    "Low interest loan",
+    "Hi how are you",
+    "Let's meet tomorrow",
+])
 
-def sigmoid(x):
-    return tf.nn.sigmoid(x)
+labels = tf.constant([1, 1, 1, 0, 0], dtype=tf.float32)
 
-# Define weights as TENSORS
-W1 = tf.constant([0.8, 0.1, 0.5], dtype=tf.float32)   # Hidden Layer 1 weights
-W2 = tf.constant([0.7, 0.9, 0.3], dtype=tf.float32)   # Hidden Layer 2 weights
-Wout = tf.constant(1.0, dtype=tf.float32)             # Output weight
+# Vectorization
+vec = tf.keras.layers.TextVectorization(max_tokens=1000, output_sequence_length=10)
+vec.adapt(texts)
 
-def forward(x):
+X = vec(texts)                     # This is a tensor of word IDs
+y = tf.expand_dims(labels, axis=1)
 
-    # Hidden Layer 1 : ReLU
-    z1 = tf.reduce_sum(x * W1)     # dot product
-    h1 = relu(z1)
+# Build model manually using Keras layers (still tensors)
+model = tf.keras.Sequential([
+    tf.keras.layers.Embedding(1000, 16),
+    tf.keras.layers.GlobalAveragePooling1D(),
+    tf.keras.layers.Dense(1, activation="sigmoid")
+])
 
-    # Hidden Layer 2 : Sigmoid
-    z2 = h1 * tf.reduce_sum(W2)
-    h2 = sigmoid(z2)
+model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
 
-    # Output : Sigmoid
-    z3 = h2 * Wout
-    output = sigmoid(z3)
+model.fit(X, y, epochs=10)
 
-    return output
+# Predict
+msg = "You won a free prize"
+msg_tensor = vec(tf.constant([msg]))
 
-# INPUT VECTOR as Tensor
-x = tf.constant([1.0, 0.0, 1.0], dtype=tf.float32)
-
-# MODEL RESULT
-result = forward(x)
-print("Final Output:", float(result))
-
-# SPAM CHECK (threshold = 0.5)
-if result >= 0.5:
-    print("Spam Detected: YES (Probability >= 0.5)")
-else:
-    print("Spam Detected: NO (Probability < 0.5)")
+pred = model.predict(msg_tensor)[0][0]
+print("SPAM" if pred > 0.5 else "HAM")
