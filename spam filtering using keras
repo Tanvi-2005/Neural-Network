@@ -1,0 +1,51 @@
+import pandas as pd
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+
+# Load dataset (UCI spam dataset format)
+df = pd.read_csv("spam.csv", encoding="latin-1")[["v1", "v2"]]
+df.columns = ["label", "message"]
+
+# Convert labels: spam = 1, ham = 0
+df["label"] = df["label"].map({"spam": 1, "ham": 0})
+
+# Train–test split
+X_train, X_test, y_train, y_test = train_test_split(
+    df["message"], df["label"], test_size=0.2, random_state=42
+)
+
+# Text vectorization
+vectorizer = tf.keras.layers.TextVectorization(max_tokens=5000, output_sequence_length=50)
+vectorizer.adapt(X_train)
+
+# Build dataset tensors
+train_ds = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(32).map(
+    lambda x, y: (vectorizer(x), y)
+)
+test_ds = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32).map(
+    lambda x, y: (vectorizer(x), y)
+)
+
+# Build simple model
+model = tf.keras.Sequential([
+    tf.keras.layers.Embedding(5000, 16),
+    tf.keras.layers.GlobalAveragePooling1D(),
+    tf.keras.layers.Dense(1, activation="sigmoid")
+])
+
+model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
+
+model.fit(train_ds, epochs=5, validation_data=test_ds)
+
+# Test accuracy
+loss, acc = model.evaluate(test_ds)
+print("Accuracy:", acc)
+
+# Prediction
+def predict(text):
+    x = vectorizer(tf.constant([text]))
+    prob = model.predict(x)[0][0]
+    return "SPAM" if prob > 0.5 else "HAM"
+
+print(predict("You won a cash reward!"))
+print(predict("Are you coming to class today?"))
