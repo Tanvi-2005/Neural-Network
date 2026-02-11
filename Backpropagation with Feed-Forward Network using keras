@@ -1,0 +1,30 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import SGD
+
+# XOR dataset
+X = np.array([[0,0],[0,1],[1,0],[1,1]], dtype=np.float32)
+Y = np.array([[0],[1],[1],[0]], dtype=np.float32)
+
+# Build the feed-forward neural network
+model = Sequential([
+    Dense(2, input_dim=2, activation='sigmoid'),  # hidden layer
+    Dense(1, activation='sigmoid')                # output layer
+])
+
+# Compile the model
+model.compile(optimizer=SGD(learning_rate=0.5),
+              loss='mean_squared_error',
+              metrics=['accuracy'])
+
+# Train the model
+model.fit(X, Y, epochs=5000, verbose=0)
+
+# Test the model
+predictions = model.predict(X)
+print("Input  Predicted Output")
+for i in range(len(X)):
+    print(X[i], np.round(predictions[i], 3))
+
